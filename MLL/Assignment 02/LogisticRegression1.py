@@ -1,3 +1,11 @@
+"""
+File : LogisticRegression1.py
+DATE : 2026-08-11
+Day : Tuesday
+author : Shubham Khedkar
+assignment03 : Based on Logistic Regression 
+"""
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression

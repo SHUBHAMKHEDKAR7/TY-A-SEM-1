@@ -5,8 +5,8 @@
 // Wi-Fi Configuration
 // =====================================================
 
-const char* ssid = "Abhi";
-const char* password = "Abhijeet@41";
+const char* ssid = "SCOE";
+const char* password = "System@1";
 
 // =====================================================
 // ThingSpeak Configuration
@@ -23,8 +23,25 @@ WiFiClient client;
 
 const int totalSeats = 50;
 
-// Starting occupied seats
+// Current occupied seats
 int occupiedSeats = 10;
+
+// =====================================================
+// Variables for simulation
+// =====================================================
+
+int availableSeats;
+
+float occupancyPercentage;
+float availabilityPercentage;
+
+int studentsEntering;
+int studentsLeaving;
+
+int waitingStudents;
+
+int crowdLevel;
+
 
 // =====================================================
 // SETUP
@@ -33,22 +50,27 @@ int occupiedSeats = 10;
 void setup() {
 
   Serial.begin(115200);
+
   delay(1000);
 
   Serial.println();
-  Serial.println("====================================");
-  Serial.println("   CANTEEN SEAT AVAILABILITY SYSTEM");
-  Serial.println("====================================");
+  Serial.println("==========================================");
+  Serial.println("     CANTEEN SEAT AVAILABILITY SYSTEM");
+  Serial.println("==========================================");
 
-  // Wi-Fi Station mode
+  // ESP8266 Station Mode
   WiFi.mode(WIFI_STA);
 
   // Start ThingSpeak
   ThingSpeak.begin(client);
 
+  // Random seed
+  randomSeed(analogRead(A0));
+
   // Connect to Wi-Fi
   connectWiFi();
 }
+
 
 // =====================================================
 // WIFI CONNECTION
@@ -64,15 +86,18 @@ void connectWiFi() {
   while (WiFi.status() != WL_CONNECTED) {
 
     delay(500);
+
     Serial.print(".");
   }
 
   Serial.println();
+
   Serial.println("Wi-Fi Connected!");
 
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 }
+
 
 // =====================================================
 // MAIN LOOP
@@ -80,7 +105,10 @@ void connectWiFi() {
 
 void loop() {
 
-  // Check Wi-Fi connection
+  // ===================================================
+  // Check Wi-Fi
+  // ===================================================
+
   if (WiFi.status() != WL_CONNECTED) {
 
     Serial.println("Wi-Fi disconnected!");
@@ -88,67 +116,134 @@ void loop() {
     connectWiFi();
   }
 
+
   // ===================================================
-  // SIMULATE CANTEEN SEAT DATA
+  // SIMULATE STUDENTS ENTERING
   // ===================================================
 
-  // Generate a random number of occupied seats
-  occupiedSeats = random(0, totalSeats + 1);
+  studentsEntering = random(0, 6);
 
-  // Calculate available seats
-  int availableSeats = totalSeats - occupiedSeats;
 
-  // Calculate occupancy percentage
-  float occupancyPercentage =
+  // ===================================================
+  // SIMULATE STUDENTS LEAVING
+  // ===================================================
+
+  studentsLeaving = random(0, 5);
+
+
+  // ===================================================
+  // UPDATE OCCUPIED SEATS
+  // ===================================================
+
+  occupiedSeats =
+      occupiedSeats
+      + studentsEntering
+      - studentsLeaving;
+
+
+  // Prevent occupied seats from going below 0
+  if (occupiedSeats < 0) {
+
+    occupiedSeats = 0;
+  }
+
+
+  // Prevent occupied seats from exceeding total seats
+  if (occupiedSeats > totalSeats) {
+
+    occupiedSeats = totalSeats;
+  }
+
+
+  // ===================================================
+  // AVAILABLE SEATS
+  // ===================================================
+
+  availableSeats =
+      totalSeats - occupiedSeats;
+
+
+  // ===================================================
+  // OCCUPANCY PERCENTAGE
+  // ===================================================
+
+  occupancyPercentage =
       (occupiedSeats * 100.0) / totalSeats;
 
-  // Calculate availability percentage
-  float availabilityPercentage =
+
+  // ===================================================
+  // AVAILABILITY PERCENTAGE
+  // ===================================================
+
+  availabilityPercentage =
       (availableSeats * 100.0) / totalSeats;
 
 
   // ===================================================
-  // DETERMINE CANTEEN STATUS
+  // SIMULATE WAITING STUDENTS
   // ===================================================
 
-  String canteenStatus;
+  if (availableSeats == 0) {
 
-  if (availabilityPercentage == 0) {
-
-    canteenStatus = "FULL";
+    waitingStudents = random(1, 11);
 
   }
-  else if (occupancyPercentage >= 80) {
+  else if (availableSeats <= 5) {
 
-    canteenStatus = "CROWDED";
-
-  }
-  else if (occupancyPercentage >= 50) {
-
-    canteenStatus = "MODERATE";
+    waitingStudents = random(0, 6);
 
   }
   else {
 
-    canteenStatus = "AVAILABLE";
+    waitingStudents = 0;
   }
 
 
   // ===================================================
-  // DISPLAY DATA ON SERIAL MONITOR
+  // DETERMINE CROWD LEVEL
+  // ===================================================
+
+  if (occupancyPercentage >= 90) {
+
+    crowdLevel = 4;
+  }
+
+  else if (occupancyPercentage >= 75) {
+
+    crowdLevel = 3;
+  }
+
+  else if (occupancyPercentage >= 50) {
+
+    crowdLevel = 2;
+  }
+
+  else if (occupancyPercentage >= 25) {
+
+    crowdLevel = 1;
+  }
+
+  else {
+
+    crowdLevel = 0;
+  }
+
+
+  // ===================================================
+  // DISPLAY DATA
   // ===================================================
 
   Serial.println();
-  Serial.println("------------------------------------");
+  Serial.println("==========================================");
 
   Serial.print("Total Seats          : ");
   Serial.println(totalSeats);
 
-  Serial.print("Occupied Seats       : ");
-  Serial.println(occupiedSeats);
-
   Serial.print("Available Seats      : ");
   Serial.println(availableSeats);
+
+  Serial.print("Occupied Seats       : ");
+  Serial.println(occupiedSeats);
 
   Serial.print("Occupancy Percentage : ");
   Serial.print(occupancyPercentage);
@@ -158,41 +253,79 @@ void loop() {
   Serial.print(availabilityPercentage);
   Serial.println("%");
 
-  Serial.print("Canteen Status       : ");
-  Serial.println(canteenStatus);
+  Serial.print("Students Entering    : ");
+  Serial.println(studentsEntering);
 
-  Serial.println("------------------------------------");
+  Serial.print("Students Leaving     : ");
+  Serial.println(studentsLeaving);
+
+  Serial.print("Waiting Students     : ");
+  Serial.println(waitingStudents);
+
+  Serial.print("Crowd Level          : ");
+  Serial.println(crowdLevel);
+
+  Serial.println("==========================================");
 
 
   // ===================================================
   // SEND DATA TO THINGSPEAK
   // ===================================================
 
-  ThingSpeak.setField(1, availableSeats);
+  // Graph 1
+  // Available Seats
+  // Occupied Seats
 
+  ThingSpeak.setField(1, availableSeats);
   ThingSpeak.setField(2, occupiedSeats);
 
-  ThingSpeak.setField(3, occupancyPercentage);
 
+  // Graph 2
+  // Occupancy Percentage
+  // Availability Percentage
+
+  ThingSpeak.setField(3, occupancyPercentage);
   ThingSpeak.setField(4, availabilityPercentage);
 
 
-  // Send all fields
-  int httpCode = ThingSpeak.writeFields(
-      myChannelNumber,
-      myWriteAPIKey
-  );
+  // Graph 3
+  // Students Entering
+  // Students Leaving
+
+  ThingSpeak.setField(5, studentsEntering);
+  ThingSpeak.setField(6, studentsLeaving);
+
+
+  // Graph 4
+  // Waiting Students
+  // Crowd Level
+
+  ThingSpeak.setField(7, waitingStudents);
+  ThingSpeak.setField(8, crowdLevel);
 
 
   // ===================================================
-  // CHECK THINGSPEAK RESPONSE
+  // SEND ALL 8 FIELDS
+  // ===================================================
+
+  int httpCode =
+      ThingSpeak.writeFields(
+          myChannelNumber,
+          myWriteAPIKey
+      );
+
+
+  // ===================================================
+  // CHECK RESULT
   // ===================================================
 
   if (httpCode == 200) {
 
+    Serial.println();
     Serial.println("ThingSpeak update successful!");
 
   }
+
   else {
 
     Serial.print("ThingSpeak update failed.");
@@ -201,11 +334,14 @@ void loop() {
   }
 
 
-  // ===================================================
-  // WAIT
-  // ===================================================
+  Serial.println();
+  Serial.println("Next update after 20 seconds...");
+  Serial.println();
 
-  Serial.println("Waiting 20 seconds...");
+
+  // ===================================================
+  // WAIT 20 SECONDS
+  // ===================================================
 
   delay(20000);
 }
