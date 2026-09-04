@@ -9,7 +9,7 @@ assignment03 : Based on Logistic Regression
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score  , confusion_matrix , precision_score
+from sklearn.metrics import accuracy_score  , confusion_matrix , precision_score , recall_score
 
 df = pd.read_csv('Titanic-Dataset.csv')
 data = df[['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Fare']]
@@ -36,3 +36,5 @@ print(confusion)
 print("\n")
 precision = precision_score(y_test , y_pred)
 print("Precision:", precision)
+
+print("Recall:" , recall_score(y_pred , y_test)) 
